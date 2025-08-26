@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-test-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-test
+  template:
+    metadata:
+      labels:
+        app: devops-test
+    spec:
+      containers:
+        - name: devops-test-container
+          image: kaisteng/devops-test-app:latest
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-test-service
+spec:
+  type: NodePort
+  selector:
+    app: devops-test
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
