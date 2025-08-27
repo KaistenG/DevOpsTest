@@ -10,8 +10,8 @@ pipeline {
         // Der Tag wird dynamisch basierend auf der Build-Nummer vergeben.
         IMAGE_TAG = "${env.BUILD_ID}"
         // Hier kommunizieren wir mit dem Docker-Daemon über TCP.
-        // Das umgeht die Berechtigungsprobleme beim Zugriff auf den Socket.
-        DOCKER_HOST = 'tcp://localhost:2375'
+        // host.docker.internal ist der Host-Rechner aus der Sicht des Containers.
+        DOCKER_HOST = 'tcp://host.docker.internal:2375'
     }
 
     // Die verschiedenen Phasen (Stages) deiner Pipeline.
