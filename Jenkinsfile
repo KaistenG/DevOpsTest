@@ -1,7 +1,11 @@
 // Pipeline-Skript für die DevOps-CI/CD-Pipeline
 pipeline {
     // Pipeline-Agent: Hier läuft das Build auf einem beliebigen Agenten.
-    agent any
+    agent {
+        docker {
+            image 'jenkins/jenkins:lts-jdk11-hotspot-docker'
+        }
+    }
 
     // Umgebungsvariablen, die in der gesamten Pipeline genutzt werden können.
     environment {
