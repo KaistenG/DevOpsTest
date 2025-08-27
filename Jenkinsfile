@@ -1,12 +1,7 @@
 // Pipeline-Skript für die DevOps-CI/CD-Pipeline
 pipeline {
-    // Pipeline-Agent: Hier läuft das Build auf einem Docker-Agenten.
-    agent {
-        docker {
-            // Verwendet ein Jenkins-Image, das bereits die Docker-CLI enthält
-            image 'jenkins/jenkins:lts-jdk11-hotspot-docker'
-        }
-    }
+    // Pipeline-Agent: Hier läuft das Build auf einem beliebigen Agenten.
+    agent any
 
     // Umgebungsvariablen, die in der gesamten Pipeline genutzt werden können.
     environment {
@@ -19,11 +14,12 @@ pipeline {
     // Die verschiedenen Phasen (Stages) deiner Pipeline.
     stages {
         // Stage 1: Build des Docker-Images
-        stage('Build DockerDocker Image') {
+        stage('Build Docker Image') {
             steps {
                 echo "Baue das Docker-Image mit dem Tag: ${env.IMAGE_TAG}..."
-                // Befehl zum Bauen des Images. Der '.' bezieht sich auf das aktuelle Verzeichnis.
-                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                // Befehl zum Bauen des Images.
+                // Verwendet die umbenannte Dockerfile.app, um die Anwendung zu bauen.
+                sh "docker build -f Dockerfile.app -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
@@ -48,7 +44,6 @@ pipeline {
             steps {
                 echo "Deploye auf Kubernetes..."
                 // Ändere das Image im Deployment-Manifest, um das neue Image zu verwenden
-                // sed -i 's|old_image|new_image|g' file.yaml
                 // Oder du machst es einfacher und nutzt `kubectl set image`.
                 sh "kubectl set image deployment/devops-test-deployment devops-test-container=${IMAGE_NAME}:${IMAGE_TAG}"
 
