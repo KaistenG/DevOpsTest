@@ -1,7 +1,12 @@
 // Pipeline-Skript für die DevOps-CI/CD-Pipeline
 pipeline {
-    // Pipeline-Agent: Hier läuft das Build auf einem beliebigen Agenten.
-    agent any
+    // Pipeline-Agent: Hier läuft das Build auf einem Docker-Agenten.
+    agent {
+        docker {
+            // Verwendet ein Jenkins-Image, das bereits die Docker-CLI enthält
+            image 'jenkins/jenkins:lts-jdk11-hotspot-docker'
+        }
+    }
 
     // Umgebungsvariablen, die in der gesamten Pipeline genutzt werden können.
     environment {
@@ -14,7 +19,7 @@ pipeline {
     // Die verschiedenen Phasen (Stages) deiner Pipeline.
     stages {
         // Stage 1: Build des Docker-Images
-        stage('Build Docker Image') {
+        stage('Build DockerDocker Image') {
             steps {
                 echo "Baue das Docker-Image mit dem Tag: ${env.IMAGE_TAG}..."
                 // Befehl zum Bauen des Images. Der '.' bezieht sich auf das aktuelle Verzeichnis.
