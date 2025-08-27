@@ -1,6 +1,6 @@
 // Pipeline-Skript für die DevOps-CI/CD-Pipeline
 pipeline {
-    // Pipeline-Agent: Hier läuft das Build auf einem beliebigen Agenten.
+    // Pipeline-Agent: Hier läuft das Build auf einem Docker-Agenten.
     agent any
 
     // Umgebungsvariablen, die in der gesamten Pipeline genutzt werden können.
@@ -18,7 +18,7 @@ pipeline {
             steps {
                 echo "Baue das Docker-Image mit dem Tag: ${env.IMAGE_TAG}..."
                 // Befehl zum Bauen des Images.
-                // Verwendet die umbenannte Dockerfile.app, um die Anwendung zu bauen.
+                // Verwende das umbenannte Dockerfile.app, um die Anwendung zu bauen.
                 sh "docker build -f Dockerfile.app -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
