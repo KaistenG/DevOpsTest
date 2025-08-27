@@ -1,4 +1,4 @@
-# Jenkins-Dockerfile
+# Jenkins-Dockerfile.app
 # Nutze das offizielle Jenkins LTS-Image als Basis.
 FROM jenkins/jenkins:lts
 
