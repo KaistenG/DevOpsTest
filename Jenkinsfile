@@ -1,48 +1,72 @@
+// Pipeline-Skript für die DevOps-CI/CD-Pipeline
 pipeline {
+    // Pipeline-Agent: Hier läuft das Build auf einem beliebigen Agenten.
     agent any
 
+    // Umgebungsvariablen, die in der gesamten Pipeline genutzt werden können.
     environment {
-        DOCKER_IMAGE = "kaisteng/devops-test-app"
-        IMAGE_TAG = "latest"
-        DEPLOYMENT_NAME = "devops-test-deployment"
-        CONTAINER_NAME = "devops-test-container"
-        K8S_NAMESPACE = "default"
+        // Der Name deines Docker-Images auf Docker Hub.
+        IMAGE_NAME = "kaisteng/devops-test-app"
+        // Der Tag wird dynamisch basierend auf der Build-Nummer vergeben.
+        IMAGE_TAG = "${env.BUILD_ID}"
     }
 
+    // Die verschiedenen Phasen (Stages) deiner Pipeline.
     stages {
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/KaistenG/DevOpsTest.git'
-            }
-        }
-
+        // Stage 1: Build des Docker-Images
         stage('Build Docker Image') {
             steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}:${IMAGE_TAG}")
-                }
+                echo "Baue das Docker-Image mit dem Tag: ${env.IMAGE_TAG}..."
+                // Befehl zum Bauen des Images. Der '.' bezieht sich auf das aktuelle Verzeichnis.
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
+        // Stage 2: Authentifizierung und Push des Images zu Docker Hub
         stage('Push Docker Image') {
             steps {
-                script {
-                    docker.withRegistry('','') { // leer, da Docker Desktop lokal läuft
-                        docker.image("${DOCKER_IMAGE}:${IMAGE_TAG}").push()
-                    }
+                echo "Pushe das Docker-Image zu Docker Hub..."
+                // Dieser Block stellt sicher, dass die Authentifizierungsdaten (Credentials)
+                // sicher aus Jenkins geladen werden, ohne sie im Skript zu hinterlegen.
+                // Ersetze 'docker-hub-credentials' mit der ID, die du in Jenkins vergibst.
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
+                    // Login bei Docker Hub
+                    sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USER} --password-stdin"
+                    // Push des Images
+                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
         }
 
+        // Stage 3: Deployment auf Kubernetes
         stage('Deploy to Kubernetes') {
             steps {
-                script {
-                    sh """
-                    kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${DOCKER_IMAGE}:${IMAGE_TAG} -n ${K8S_NAMESPACE}
-                    kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${K8S_NAMESPACE}
-                    """
-                }
+                echo "Deploye auf Kubernetes..."
+                // Ändere das Image im Deployment-Manifest, um das neue Image zu verwenden
+                // sed -i 's|old_image|new_image|g' file.yaml
+                // Oder du machst es einfacher und nutzt `kubectl set image`.
+                sh "kubectl set image deployment/devops-test-deployment devops-test-container=${IMAGE_NAME}:${IMAGE_TAG}"
+
+                // Überprüfe, ob das Deployment erfolgreich ist.
+                sh "kubectl rollout status deployment/devops-test-deployment"
+
+                // Apply des HPA, falls sich die Konfiguration geändert hat.
+                // Du könntest dies auch in einem separaten Schritt machen.
+                sh "kubectl apply -f k8s-hpa.yaml"
             }
+        }
+    }
+
+    // Post-Build-Aktionen, die immer nach Abschluss der Stages ausgeführt werden.
+    post {
+        // Wird ausgeführt, wenn die Pipeline erfolgreich war.
+        success {
+            echo "✅ Pipeline erfolgreich durchgelaufen!"
+            echo "App ist unter der neuen Version ${env.IMAGE_TAG} deployed."
+        }
+        // Wird ausgeführt, wenn die Pipeline fehlgeschlagen ist.
+        failure {
+            echo "❌ Pipeline fehlgeschlagen!"
         }
     }
 }
