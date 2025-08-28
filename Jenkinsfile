@@ -44,7 +44,7 @@ pipeline {
                     // Verwende kubectl, um das Deployment in Kubernetes zu aktualisieren.
                     echo "Applying Kubernetes manifests..."
                     // Stellt sicher, dass kubectl in Jenkins installiert und konfiguriert ist.
-                    // Kubernetes holt dann das neue Image mit dem Build-Nummer-Tag.
+                    // Kubernetes holt dann das neue Image mit dem Build-Nummer-Tag bla bla bla.
                     sh 'kubectl apply -f k8s-deployment.file -f k8s-hpa.yaml'
                 }
             }
