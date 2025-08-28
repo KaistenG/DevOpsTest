@@ -1,33 +1,23 @@
-(venv) PS C:\Users\49160\IdeaProjects\DevOpsTest> docker-compose down
-yaml: unmarshal errors:
-  line 3: cannot unmarshal !!str `FROM je...` into cli.named
-# Jenkins-Dockerfile
-# Nutze das offizielle Jenkins LTS-Image als Basis.
-FROM jenkins/jenkins:lts
+# Verwende ein schlankes, offizielles Python-Image als Basis.
+# Das hilft, die Größe deines Images zu minimieren.
+FROM python:3.9-slim
 
-# Wechsel zu Root, um System-Pakete zu installieren und die Docker-Gruppe anzupassen.
-USER root
+# Setze das Arbeitsverzeichnis im Container auf /app.
+# Hier werden alle nachfolgenden Befehle ausgeführt.
+WORKDIR /app
 
-# Hier passen wir die Docker-Gruppe an.
-# Finde die GID der Docker-Gruppe auf deiner Host-Maschine (z.B. mit 'grep docker /etc/group').
-# Diese GID muss der GID der Docker-Gruppe im Container entsprechen.
-RUN groupadd -g 197615 docker || true \
-    && usermod -aG docker jenkins
+# Kopiere die requirements.txt und installiere die Abhängigkeiten.
+# Das ist ein guter Trick, da sich die requirements.txt selten ändert.
+# Docker kann diesen Schritt cachen, was zukünftige Builds beschleunigt.
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Installiere notwendige Pakete für Docker und Kubectl.
-RUN apt-get update && apt-get install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release \
-    git \
-    docker.io
+# Kopiere den Rest deiner Anwendung (app.py, etc.).
+COPY . .
 
-# Lade und installiere Kubectl.
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
-    && chmod +x ./kubectl \
-    && mv ./kubectl /usr/local/bin/kubectl
+# Lege den Port fest, den die App im Container verwendet (Port 5000).
+EXPOSE 5000
 
-# Wechsel zurück zum Jenkins-Benutzer.
-USER jenkins
+# Starte die Anwendung, wenn der Container gestartet wird.
+# CMD ["python", "app.py"] führt die app.py aus.
+CMD ["python", "app.py"]

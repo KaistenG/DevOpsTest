@@ -1,3 +1,5 @@
+# HorizontalPodAutoscaler skaliert die Pod-Anzahl automatisch
+# basierend auf der CPU-Auslastung
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -7,19 +9,19 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: devops-test-deployment
-  minReplicas: 1
-  maxReplicas: 5
+  minReplicas: 1  # Mindestanzahl von Pods
+  maxReplicas: 5  # Maximalanzahl von Pods
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 50
-  behavior:
-    scaleDown:
-      stabilizationWindowSeconds: 60   # Wartezeit bevor Pods reduziert werden
-      policies:
-        - type: Percent
-          value: 100
-          periodSeconds: 15             # Prüft alle 15 Sekunden, wie viele Pods runtergefahren werden
+          averageUtilization: 50  # Skaliert, wenn die CPU-Auslastung 50% überschreitet
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 60
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15

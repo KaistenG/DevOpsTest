@@ -1,65 +1,53 @@
-// Jenkinsfile für eine robuste CI/CD-Pipeline mit Master/Agent-Architektur
+// Definiert die Pipeline, die in Jenkins ausgeführt wird.
 pipeline {
-    // Definiert, dass die Pipeline auf einem Jenkins-Agenten läuft.
-    agent {
-        // Verbindet die Pipeline mit dem von uns erstellten dedizierten Agenten.
-        label 'jenkins-agent'
-    }
+    // "agent any" bedeutet, dass die Pipeline auf jedem verfügbaren Agenten laufen kann.
+    agent any
 
-    // Definiert die Umgebungsvariablen für die Pipeline.
-    environment {
-        // Holt die Build-Nummer für das Tagging des Docker-Images.
-        IMAGE_TAG = "${BUILD_NUMBER}"
-        // Definiert den vollständigen Docker-Image-Namen.
-        DOCKER_IMAGE = "kaisteng/devops-test-app:${IMAGE_TAG}"
-    }
-
-    // Definiert die Phasen (Stages) der Pipeline.
+    // Die Stages definieren die Schritte der Pipeline.
     stages {
-        // Phase 1: Docker-Image bauen
-        stage('Build Docker Image') {
+        // Stage 1: Build - Baut das Docker-Image.
+        stage('Build') {
             steps {
-                echo "Baue das Docker-Image mit dem Tag: ${env.IMAGE_TAG}..."
-                // Führt den Docker-Build-Befehl aus.
-                // Verwendet die Dockerfile.app im aktuellen Verzeichnis.
-                sh "docker build -f Dockerfile.app -t ${env.DOCKER_IMAGE} ."
-            }
-        }
+                script {
+                    // Definiert den Image-Namen und das Tag.
+                    // (Wir verwenden die Build-Nummer von Jenkins für ein einzigartiges Tag)
+                    def imageName = "kaisteng/devops-test-app:${env.BUILD_NUMBER}"
 
-        // Phase 2: Docker-Image zu Docker Hub pushen
-        stage('Push Docker Image') {
-            steps {
-                echo "Pushe das Docker-Image zu Docker Hub..."
-                // Verwendet die Anmeldedaten mit der ID "docker-hub-credentials".
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-                    // Meldet sich mit den gespeicherten Anmeldedaten bei Docker Hub an.
-                    sh "echo \"$DOCKER_PASSWORD\" | docker login -u \"$DOCKER_USERNAME\" --password-stdin"
-                    // Pusht das frisch gebaute Image.
-                    sh "docker push ${env.DOCKER_IMAGE}"
+                    // Führe den Docker Build-Befehl aus.
+                    echo "Building Docker image ${imageName}..."
+                    // 'docker.build' ist ein Jenkins-spezifischer Befehl.
+                    docker.build(imageName)
+
+                    // Pusht das Image in die Docker Registry (z.B. Docker Hub).
+                    // Beachte: Du musst zuvor in Jenkins die Docker Hub-Anmeldedaten
+                    // in den "Credentials" hinterlegen.
+                    echo "Pushing Docker image ${imageName}..."
+                    docker.image(imageName).push()
                 }
             }
         }
 
-        // Phase 3: Deployment auf Kubernetes
-        stage('Deploy to Kubernetes') {
+        // Stage 2: Test - Ein einfacher Platzhalter für deine Lasttests.
+        // Die Integration von Locust ist etwas komplexer und kann später hinzugefügt werden.
+        stage('Test') {
             steps {
-                echo "Deploye auf Kubernetes..."
-                // Aktualisiert das Image in deinem Kubernetes-Deployment.
-                // `kubectl` ist auf dem Agenten verfügbar und greift auf die gemountete Konfiguration zu.
-                sh "kubectl set image deployment/devops-test-deployment devops-test-container=${env.DOCKER_IMAGE}"
+                echo "Running tests (placeholder for now)..."
+                // Hier würden die Locust-Tests ausgeführt werden, z.B.:
+                // sh "docker run --rm locustio/locust -f locustfile.py -H http://localhost:80"
             }
         }
-    }
 
-    // Post-Actions, die nach Abschluss der Pipeline ausgeführt werden.
-    post {
-        // Wird ausgeführt, wenn die Pipeline erfolgreich war.
-        success {
-            echo "✅ Pipeline erfolgreich!"
-        }
-        // Wird ausgeführt, wenn die Pipeline fehlgeschlagen ist.
-        failure {
-            echo "❌ Pipeline fehlgeschlagen!"
+        // Stage 3: Deploy - Bereitstellung in Kubernetes.
+        stage('Deploy') {
+            steps {
+                script {
+                    // Verwende kubectl, um das Deployment in Kubernetes zu aktualisieren.
+                    echo "Applying Kubernetes manifests..."
+                    // Stellt sicher, dass kubectl in Jenkins installiert und konfiguriert ist.
+                    // Kubernetes holt dann das neue Image mit dem Build-Nummer-Tag.
+                    sh 'kubectl apply -f k8s-deployment.file -f k8s-hpa.yaml'
+                }
+            }
         }
     }
 }

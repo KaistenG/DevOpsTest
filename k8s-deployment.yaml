@@ -1,9 +1,10 @@
+# Deployment definiert, wie deine Anwendung ausgeführt wird
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: devops-test-deployment
 spec:
-  replicas: 1
+  replicas: 1  # Startet mit einer Replik
   selector:
     matchLabels:
       app: devops-test
@@ -14,6 +15,8 @@ spec:
     spec:
       containers:
         - name: devops-test-container
+          # Das Image, das wir in der Jenkins-Pipeline bauen und pushen
+          # Das Tag 'latest' wird in der Jenkinsfile durch die Build-Nummer ersetzt
           image: kaisteng/devops-test-app:latest
           ports:
             - containerPort: 5000
@@ -26,15 +29,16 @@ spec:
               memory: "256Mi"
 
 ---
+# Service macht das Deployment von außen erreichbar
 apiVersion: v1
 kind: Service
 metadata:
   name: devops-test-service
 spec:
-  type: NodePort
+  type: NodePort  # Exponiert den Service auf einem statischen Port des Knotens
   selector:
     app: devops-test
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 5000
+      targetPort: 5000  # Leitet Traffic an Port 5000 des Containers weiter
